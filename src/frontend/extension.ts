@@ -57,7 +57,7 @@ export class CortexDebugExtension {
         Reporting.activate(context);
 
         this.liveWatchProvider = new LiveWatchWebviewProvider(this.context);
-        
+
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider(
                 LiveWatchWebviewProvider.viewType,

@@ -35,13 +35,14 @@ class LiveWatchView {
     private variables: VariableNode[] = [];
     private selectedId: string | null = null;
     private hasSession: boolean = false;
+    private editingNodeId: string | null = null;
 
     constructor() {
         this.vscode = acquireVsCodeApi();
         this.root = document.getElementById('live-watch-root')!;
-        
+
         window.addEventListener('message', this.handleMessage.bind(this));
-        
+
         // Restore state
         const state = this.vscode.getState();
         if (state) {
@@ -49,20 +50,23 @@ class LiveWatchView {
             this.hasSession = state.hasSession || false;
             this.render();
         }
-        
+
         // Request initial data
         this.vscode.postMessage({ type: 'init' });
     }
 
     private handleMessage(event: MessageEvent<LiveWatchMessage>) {
         const message = event.data;
-        
+
         switch (message.type) {
             case 'update':
                 this.variables = message.variables || [];
                 this.hasSession = message.hasSession ?? false;
                 this.vscode.setState({ variables: this.variables, hasSession: this.hasSession });
-                this.render();
+                // Don't re-render if we're currently editing - just save the data
+                if (!this.editingNodeId) {
+                    this.render();
+                }
                 break;
             case 'clear':
                 this.variables = [];
@@ -78,7 +82,7 @@ class LiveWatchView {
 
     private render() {
         this.root.innerHTML = '';
-        
+
         if (this.variables.length === 0) {
             this.renderHint('Hint: Use & Enable "liveWatch" in your launch.json to enable this panel, and use the \'+\' button above to add new expressions');
             return;
@@ -140,24 +144,36 @@ class LiveWatchView {
         // Content
         const content = document.createElement('div');
         content.className = 'tree-item-content';
-        
+
         const label = document.createElement('span');
         label.className = 'tree-label';
-        
+
         // Parse name to show only the simple name (remove file prefix for global vars)
         const parts = node.name.startsWith('\'') && node.isRoot ? node.name.split('\'::') : [node.name];
         const displayName = parts.pop() || node.name;
-        
+
         const nameSpan = document.createElement('span');
         nameSpan.className = 'name';
+        if (node.isRoot) {
+            nameSpan.classList.add('editable');
+        }
         nameSpan.textContent = displayName;
+
+        // Inline editing for root nodes
+        if (node.isRoot) {
+            nameSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.startInlineEdit(node, nameSpan);
+            });
+        }
+
         label.appendChild(nameSpan);
-        
+
         const separator = document.createElement('span');
         separator.className = 'separator';
         separator.textContent = ': ';
         label.appendChild(separator);
-        
+
         const valueSpan = document.createElement('span');
         valueSpan.className = 'value';
         if (!node.value || node.value === '') {
@@ -170,7 +186,7 @@ class LiveWatchView {
             }
         }
         label.appendChild(valueSpan);
-        
+
         // Set tooltip
         let tooltip = node.type || '';
         if (parts.length > 0) {
@@ -178,7 +194,7 @@ class LiveWatchView {
             tooltip = 'File: ' + file + (tooltip ? '\n' + tooltip : '');
         }
         label.title = tooltip;
-        
+
         content.appendChild(label);
         item.appendChild(content);
 
@@ -186,24 +202,24 @@ class LiveWatchView {
         if (node.isRoot) {
             const actions = document.createElement('div');
             actions.className = 'tree-item-actions';
-            
+
             // Set value button
             if (this.hasSession) {
                 actions.appendChild(this.createActionButton('set-value', node.id, 'Set Value', this.getSetValueIcon()));
             }
-            
+
             // Edit button
             actions.appendChild(this.createActionButton('edit', node.id, 'Edit expression', this.getEditIcon()));
-            
+
             // Move up button
             actions.appendChild(this.createActionButton('move-up', node.id, 'Move expression up', this.getArrowUpIcon()));
-            
+
             // Move down button
             actions.appendChild(this.createActionButton('move-down', node.id, 'Move expression down', this.getArrowDownIcon()));
-            
+
             // Remove button
             actions.appendChild(this.createActionButton('remove', node.id, 'Remove expression', this.getCloseIcon()));
-            
+
             item.appendChild(actions);
         } else if (this.hasSession) {
             // Set value button for non-root nodes
@@ -217,8 +233,10 @@ class LiveWatchView {
             this.selectNode(node.id);
         });
 
-        item.addEventListener('dblclick', () => {
-            if (node.hasChildren) {
+        item.addEventListener('dblclick', (e) => {
+            // Only toggle for non-root nodes with children
+            // Root nodes use inline edit on name double-click
+            if (!node.isRoot && node.hasChildren) {
                 this.toggleNode(node.id);
             }
         });
@@ -232,11 +250,11 @@ class LiveWatchView {
             if (node.expanded) {
                 childrenContainer.classList.add('expanded');
             }
-            
+
             for (const child of node.children) {
                 this.renderNode(child, childrenContainer);
             }
-            
+
             itemContainer.appendChild(childrenContainer);
         }
 
@@ -273,6 +291,90 @@ class LiveWatchView {
 
     private toggleNode(id: string) {
         this.vscode.postMessage({ type: 'toggle', nodeId: id });
+    }
+
+    private startInlineEdit(node: VariableNode, nameSpan: HTMLElement) {
+        if (this.editingNodeId) {
+            return; // Already editing
+        }
+
+        this.editingNodeId = node.id;
+
+        const currentName = node.name;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inline-edit-input';
+        input.value = currentName;
+
+        const parent = nameSpan.parentElement;
+        if (!parent) {
+            return;
+        }
+
+        // Hide the name span and separator + value temporarily
+        const separator = parent.querySelector('.separator') as HTMLElement;
+        const valueSpan = parent.querySelector('.value') as HTMLElement;
+
+        nameSpan.style.display = 'none';
+        if (separator) {
+            separator.style.display = 'none';
+        }
+        if (valueSpan) {
+            valueSpan.style.display = 'none';
+        }
+
+        parent.insertBefore(input, nameSpan);
+        input.focus();
+        input.select();
+
+        const finishEdit = (save: boolean) => {
+            if (this.editingNodeId !== node.id) {
+                return; // Already finished
+            }
+
+            this.editingNodeId = null;
+            const newValue = input.value.trim();
+
+            // Restore visibility
+            nameSpan.style.display = '';
+            if (separator) {
+                separator.style.display = '';
+            }
+            if (valueSpan) {
+                valueSpan.style.display = '';
+            }
+
+            // Remove input
+            if (input.parentElement) {
+                input.parentElement.removeChild(input);
+            }
+
+            // Save if changed
+            if (save && newValue && newValue !== currentName) {
+                this.vscode.postMessage({
+                    type: 'inline-rename',
+                    nodeId: node.id,
+                    newName: newValue
+                });
+            } else {
+                // Re-render to apply any updates that were skipped during editing
+                this.render();
+            }
+        };
+
+        input.addEventListener('blur', () => {
+            finishEdit(true);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEdit(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishEdit(false);
+            }
+        });
     }
 
     // SVG Icons

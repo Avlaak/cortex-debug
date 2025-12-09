@@ -138,6 +138,27 @@
             width: 16px;
             flex-shrink: 0;
         }
+        .inline-edit-input {
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border, var(--vscode-focusBorder));
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            padding: 1px 4px;
+            outline: none;
+            width: 100%;
+            min-width: 100px;
+        }
+        .inline-edit-input:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+        .tree-label .name.editable {
+            cursor: text;
+        }
+        .tree-label .name.editable:hover {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
     </style>
 </head>
 <body>

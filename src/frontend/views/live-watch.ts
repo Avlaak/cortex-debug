@@ -124,7 +124,7 @@ export class LiveVariableNode {
     public toWebViewNode(depth: number = 0, cwd?: string): WebViewVariableNode {
         const parts = this.name.startsWith('\'') && this.isRootChild() ? this.name.split('\'::') : [this.name];
         const displayName = parts.pop() || this.name;
-        
+
         let file = parts.length ? parts[0].slice(1) : '';
         if (file && cwd) {
             file = getPathRelative(cwd, file);
@@ -487,7 +487,34 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
             case 'action':
                 this.handleAction(message.action, message.nodeId);
                 break;
+            case 'inline-rename':
+                this.handleInlineRename(message.nodeId, message.newName);
+                break;
         }
+    }
+
+    private handleInlineRename(nodeId: string, newName: string) {
+        const node = this.variables.findById(nodeId);
+        if (!node || !node.isRootChild()) {
+            return;
+        }
+
+        newName = newName.trim();
+        if (!newName || newName === node.getName()) {
+            return;
+        }
+
+        // Check if expression already exists
+        if (this.variables.findName(newName)) {
+            vscode.window.showInformationMessage(
+                `Live Watch: Expression ${newName} is already being watched`
+            );
+            return;
+        }
+
+        node.rename(newName);
+        this.saveState();
+        this.refresh(LiveWatchWebviewProvider.session);
     }
 
     private handleAction(action: string, nodeId: string) {
