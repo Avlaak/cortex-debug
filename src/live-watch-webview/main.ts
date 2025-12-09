@@ -126,7 +126,7 @@ class LiveWatchView {
         // Create container
         inputContainer = document.createElement('div');
         inputContainer.className = 'tree-item add-expression-container';
-        
+
         // Toggle placeholder (invisible)
         const toggle = document.createElement('span');
         toggle.className = 'tree-toggle no-children';
@@ -135,20 +135,20 @@ class LiveWatchView {
         // Content
         const content = document.createElement('div');
         content.className = 'tree-item-content';
-        
+
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'inline-edit-input';
         input.placeholder = 'Expression to watch';
         input.style.width = '100%';
-        
+
         content.appendChild(input);
         inputContainer.appendChild(content);
-        
+
         this.root.appendChild(inputContainer);
-        
+
         input.focus();
-        
+
         // Event listeners
         const commit = () => {
             const value = input.value.trim();
@@ -157,7 +157,7 @@ class LiveWatchView {
             }
             cleanup();
         };
-        
+
         const cleanup = () => {
             if (inputContainer && inputContainer.parentNode) {
                 inputContainer.parentNode.removeChild(inputContainer);
@@ -167,7 +167,7 @@ class LiveWatchView {
                 this.render();
             }
         };
-        
+
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -179,7 +179,7 @@ class LiveWatchView {
                 cleanup();
             }
         });
-        
+
         input.addEventListener('blur', () => {
             // Commit on blur if there is a value
             const value = input.value.trim();
@@ -188,7 +188,7 @@ class LiveWatchView {
             }
             cleanup();
         });
-        
+
         this.editingNodeId = 'add-expression';
     }
 

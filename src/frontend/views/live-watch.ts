@@ -6,6 +6,7 @@ import { getPathRelative, LiveWatchConfig } from '../../common';
 import { DebugProtocol } from '@vscode/debugprotocol';
 
 interface SaveVarState {
+    id: string;
     expanded: boolean;
     value: string;
     children: LiveVariableNode[] | undefined;
@@ -50,6 +51,10 @@ export class LiveVariableNode {
 
     public getId(): string {
         return this.id;
+    }
+
+    public setId(id: string) {
+        this.id = id;
     }
 
     public getExpr(): string {
@@ -236,6 +241,7 @@ export class LiveVariableNode {
             const oldStateMap: SaveVarStateMap = {};
             for (const child of this.children ?? []) {
                 oldStateMap[child.name] = {
+                    id: child.getId(),
                     expanded: child.expanded,
                     value: child.value,
                     children: child.children
@@ -256,6 +262,7 @@ export class LiveVariableNode {
                             variable.variablesReference ?? 0);
                         const oldState = oldStateMap[ch.name];
                         if (oldState) {
+                            ch.setId(oldState.id);
                             ch.expanded = oldState.expanded && (ch.variablesReference > 0);
                             ch.prevValue = oldState.value;
                             ch.children = oldState.children;
