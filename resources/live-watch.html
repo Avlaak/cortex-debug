@@ -81,17 +81,30 @@
             align-items: center;
         }
         .tree-label .name {
-            color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
+            color: var(--vscode-debugTokenExpression-name, var(--vscode-foreground));
             flex-shrink: 0;
         }
         .tree-label .separator {
             color: var(--vscode-descriptionForeground);
             flex-shrink: 0;
+            padding: 0 4px;
         }
         .tree-label .value {
             color: var(--vscode-debugTokenExpression-value, var(--vscode-foreground));
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .tree-label .value.string {
+            color: var(--vscode-debugTokenExpression-string, #ce9178);
+        }
+        .tree-label .value.number {
+            color: var(--vscode-debugTokenExpression-number, #b5cea8);
+        }
+        .tree-label .value.boolean {
+            color: var(--vscode-debugTokenExpression-boolean, #569cd6);
+        }
+        .tree-label .value.error {
+            color: var(--vscode-debugTokenExpression-error, #f48771);
         }
         .tree-label .value.changed {
             background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));

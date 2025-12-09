@@ -171,7 +171,7 @@ class LiveWatchView {
 
         const separator = document.createElement('span');
         separator.className = 'separator';
-        separator.textContent = ': ';
+        separator.textContent = '=';
         label.appendChild(separator);
 
         const valueSpan = document.createElement('span');
@@ -183,6 +183,17 @@ class LiveWatchView {
             valueSpan.textContent = node.value;
             if (node.changed) {
                 valueSpan.classList.add('changed');
+            }
+
+            // Add type classes
+            if (node.value.startsWith('"') || node.value.startsWith("'")) {
+                valueSpan.classList.add('string');
+            } else if (node.value === 'true' || node.value === 'false') {
+                valueSpan.classList.add('boolean');
+            } else if (/^-?\d/.test(node.value) || /^0x[0-9a-fA-F]/.test(node.value)) {
+                valueSpan.classList.add('number');
+            } else if (node.value.startsWith('<')) {
+                valueSpan.classList.add('error');
             }
         }
 
