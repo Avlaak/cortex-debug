@@ -117,6 +117,38 @@ const grapherConfig = {
     }
 };
 
+const liveWatchConfig = {
+    target: 'web',
+    entry: {
+        'live-watch': './src/live-watch-webview/main.ts'
+    },
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: '[name].bundle.js',
+        devtoolModuleFilenameTemplate: '../[resource-path]'
+    },
+    devtool: 'source-map',
+    resolve: {
+        extensions: ['.ts', '.js']
+    },
+    module: {
+        rules: [
+            {
+                test: /\.ts$/,
+                exclude: /node_modules/,
+                use: [
+                    {
+                        loader: 'ts-loader',
+                        options: {
+                            configFile: path.resolve(__dirname, 'src/live-watch-webview/tsconfig.json')
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+};
+
 const docgenConfig = {
     target: 'node',
     entry: './src/docgen.ts',
@@ -150,4 +182,4 @@ const docgenConfig = {
     ]
 };
 
-module.exports = [extensionConfig, adapterConfig, grapherConfig, docgenConfig];
+module.exports = [extensionConfig, adapterConfig, grapherConfig, liveWatchConfig, docgenConfig];

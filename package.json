@@ -3124,6 +3124,7 @@
         "views": {
             "debug": [
                 {
+                    "type": "webview",
                     "id": "cortex-debug.liveWatch",
                     "name": "Cortex Live Watch",
                     "when": "debugType == cortex-debug"

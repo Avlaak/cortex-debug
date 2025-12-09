@@ -5,7 +5,7 @@ import globals from 'globals';
 
 export default tseslint.config(
     {
-        ignores: ['out/', 'dist/'],
+        ignores: ['out/', 'dist/', 'src/live-watch-webview/'],
     },
     eslint.configs.recommended,
     tseslint.configs.recommendedTypeChecked,

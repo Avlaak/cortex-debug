@@ -13,6 +13,7 @@
 		"node_modules",
 		"binary_modules",
 		"src/remote",
+		"src/live-watch-webview",
 		".vscode-test"
 	]
 }

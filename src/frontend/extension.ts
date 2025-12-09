@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { CortexDebugChannel } from '../dbgmsgs';
-import { LiveWatchTreeProvider, LiveVariableNode } from './views/live-watch';
+import { LiveWatchWebviewProvider, LiveVariableNode } from './views/live-watch';
 
 import { RTTCore, SWOCore } from './swo/core';
 import {
@@ -43,8 +43,7 @@ export class CortexDebugExtension {
     private gdbServerConsole: GDBServerConsole = null;
 
     private memoryProvider: MemoryContentProvider;
-    private liveWatchProvider: LiveWatchTreeProvider;
-    private liveWatchTreeView: vscode.TreeView<LiveVariableNode>;
+    private liveWatchProvider: LiveWatchWebviewProvider;
 
     private SVDDirectory: SVDInfo[] = [];
     private functionSymbols: SymbolInformation[] = null;
@@ -57,10 +56,14 @@ export class CortexDebugExtension {
 
         Reporting.activate(context);
 
-        this.liveWatchProvider = new LiveWatchTreeProvider(this.context);
-        this.liveWatchTreeView = vscode.window.createTreeView('cortex-debug.liveWatch', {
-            treeDataProvider: this.liveWatchProvider
-        });
+        this.liveWatchProvider = new LiveWatchWebviewProvider(this.context);
+        
+        context.subscriptions.push(
+            vscode.window.registerWebviewViewProvider(
+                LiveWatchWebviewProvider.viewType,
+                this.liveWatchProvider
+            )
+        );
 
         vscode.commands.executeCommand('setContext', `cortex-debug:${CortexDebugKeys.VARIABLE_DISPLAY_MODE}`,
             config.get(CortexDebugKeys.VARIABLE_DISPLAY_MODE, true));
@@ -97,17 +100,7 @@ export class CortexDebugExtension {
                 if (e && e.textEditor.document.fileName.endsWith('.cdmem')) { this.memoryProvider.handleSelection(e); }
             }),
 
-            vscode.debug.registerDebugConfigurationProvider('cortex-debug', new CortexDebugConfigurationProvider(context)),
-
-            this.liveWatchTreeView,
-            this.liveWatchTreeView.onDidExpandElement((e) => {
-                this.liveWatchProvider.expandChildren(e.element);
-                this.liveWatchProvider.saveState();
-            }),
-            this.liveWatchTreeView.onDidCollapseElement((e) => {
-                e.element.expanded = false;
-                this.liveWatchProvider.saveState();
-            })
+            vscode.debug.registerDebugConfigurationProvider('cortex-debug', new CortexDebugConfigurationProvider(context))
         );
     }
 
