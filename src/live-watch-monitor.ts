@@ -441,6 +441,22 @@ export class LiveWatchMonitor {
         return ret;
     }
 
+    public async setValueRequest(response: DebugProtocol.Response, args: { expression: string; value: string }): Promise<void> {
+        try {
+            const exp = args.expression;
+            const value = args.value;
+            // Use gdb 'set' command via interpreter-exec to assign the value
+            await this.miDebugger.sendCommand(`interpreter-exec console "set ${exp}=${value}"`);
+            response.success = true;
+            this.mainSession.sendResponse(response);
+            if (this.mainSession.args.showDevDebugOutput) {
+                this.mainSession.handleMsg('log', `LiveGDB: Set ${exp} = ${value}\n`);
+            }
+        } catch (err) {
+            this.mainSession.sendErrorResponsePub(response, 11, `Could not set value: ${err}`);
+        }
+    }
+
     // Calling this will also enable caching for the future of the session
     public async refreshLiveCache(args: RefreshAllArguments): Promise<void> {
         if (args.deleteAll) {

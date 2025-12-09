@@ -441,6 +441,11 @@
                 "icon": "$(edit)"
             },
             {
+                "command": "cortex-debug.liveWatch.setValue",
+                "title": "Set Value",
+                "icon": "$(symbol-variable)"
+            },
+            {
                 "command": "cortex-debug.liveWatch.moveUp",
                 "title": "Move expression up",
                 "icon": "$(arrow-up)"
@@ -3045,6 +3050,11 @@
                 }
             ],
             "view/item/context": [
+                {
+                    "command": "cortex-debug.liveWatch.setValue",
+                    "when": "view == cortex-debug.liveWatch && inDebugMode && debugType == 'cortex-debug'",
+                    "group": "inline"
+                },
                 {
                     "command": "cortex-debug.liveWatch.editExpr",
                     "when": "view == cortex-debug.liveWatch && viewItem == expression",

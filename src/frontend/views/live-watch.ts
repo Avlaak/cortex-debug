@@ -59,6 +59,14 @@ export class LiveVariableNode extends BaseNode {
         return this.name;
     }
 
+    public getValue() {
+        return this.value;
+    }
+
+    public getVariablesReference() {
+        return this.variablesReference;
+    }
+
     public findName(str: string): LiveVariableNode | undefined {
         for (const child of this.children || []) {
             if (child.name === str) {
@@ -608,6 +616,34 @@ export class LiveWatchTreeProvider implements TreeDataProvider<LiveVariableNode>
                     this.saveState();
                     this.refresh(LiveWatchTreeProvider.session);
                 }
+            }
+        });
+    }
+
+    public setValueNode(node: LiveVariableNode) {
+        if (!LiveWatchTreeProvider.session) {
+            vscode.window.showWarningMessage('Live Watch: No active debug session');
+            return;
+        }
+        const currentValue = node.getValue();
+        const opts: vscode.InputBoxOptions = {
+            placeHolder: 'Enter the new value for the variable',
+            ignoreFocusOut: true,
+            value: currentValue,
+            prompt: `Set value for ${node.getName()}`
+        };
+        vscode.window.showInputBox(opts).then((result) => {
+            result = result !== undefined ? result.trim() : undefined;
+            if (result !== undefined && result !== currentValue) {
+                const args = {
+                    expression: node.getExpr(),
+                    value: result
+                };
+                LiveWatchTreeProvider.session.customRequest('liveSetValue', args).then(() => {
+                    this.refresh(LiveWatchTreeProvider.session);
+                }, (err) => {
+                    vscode.window.showErrorMessage(`Live Watch: Failed to set value: ${err}`);
+                });
             }
         });
     }
