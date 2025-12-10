@@ -78,7 +78,7 @@ class LiveWatchView {
         if (!this.contextMenu) { return; }
 
         this.contextMenu.innerHTML = '';
-        
+
         // Determine current format
         const match = node.name.match(/,([hxbod])$/);
         const currentFormat = match ? match[1] : '';
@@ -94,7 +94,7 @@ class LiveWatchView {
         formats.forEach(f => {
             const item = document.createElement('div');
             item.className = 'context-menu-item';
-            
+
             const check = document.createElement('span');
             check.className = 'context-menu-check';
             if (f.format === currentFormat) {
@@ -128,7 +128,7 @@ class LiveWatchView {
         const rect = this.contextMenu.getBoundingClientRect();
         // We can't get rect before display block, but we can guess or adjust after.
         // Simple positioning for now.
-        
+
         this.contextMenu.style.left = `${x}px`;
         this.contextMenu.style.top = `${y}px`;
         this.contextMenu.style.display = 'block';
@@ -157,6 +157,7 @@ class LiveWatchView {
                 this.renderHint(message.hintText || '');
                 break;
             case 'add-expression':
+                this.renderHint('');
                 this.showAddExpressionInput();
                 break;
         }
@@ -319,19 +320,19 @@ class LiveWatchView {
         if (node.isRoot) {
             nameSpan.classList.add('editable');
         }
-        
+
         // Check for format specifier
         const formatMatch = displayName.match(/,([hxbod])$/);
         let formatSpan: HTMLSpanElement | undefined;
 
         if (formatMatch && node.isRoot) {
             nameSpan.textContent = displayName.substring(0, formatMatch.index);
-            
+
             formatSpan = document.createElement('span');
             formatSpan.className = 'format-specifier';
             formatSpan.textContent = formatMatch[0];
             formatSpan.title = 'Click to change format';
-            
+
             formatSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.showContextMenu(e, node);
