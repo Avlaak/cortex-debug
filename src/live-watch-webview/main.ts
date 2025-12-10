@@ -157,7 +157,10 @@ class LiveWatchView {
                 this.renderHint(message.hintText || '');
                 break;
             case 'add-expression':
-                this.renderHint('');
+                // Clear hint if list is empty (placeholder is showing)
+                if (this.variables.length === 0) {
+                    this.root.innerHTML = '';
+                }
                 this.showAddExpressionInput();
                 break;
         }
