@@ -36,10 +36,14 @@ class LiveWatchView {
     private selectedId: string | null = null;
     private hasSession: boolean = false;
     private editingNodeId: string | null = null;
+    private contextMenu: HTMLElement | null = null;
 
     constructor() {
         this.vscode = acquireVsCodeApi();
         this.root = document.getElementById('live-watch-root')!;
+
+        this.createContextMenu();
+        window.addEventListener('click', () => this.hideContextMenu());
 
         window.addEventListener('message', this.handleMessage.bind(this));
 
@@ -53,6 +57,81 @@ class LiveWatchView {
 
         // Request initial data
         this.vscode.postMessage({ type: 'init' });
+    }
+
+    private createContextMenu() {
+        this.contextMenu = document.createElement('div');
+        this.contextMenu.className = 'context-menu';
+        document.body.appendChild(this.contextMenu);
+    }
+
+    private hideContextMenu() {
+        if (this.contextMenu) {
+            this.contextMenu.style.display = 'none';
+        }
+    }
+
+    private showContextMenu(e: MouseEvent, node: VariableNode) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!this.contextMenu) { return; }
+
+        this.contextMenu.innerHTML = '';
+        
+        // Determine current format
+        const match = node.name.match(/,([hxbod])$/);
+        const currentFormat = match ? match[1] : '';
+
+        const formats = [
+            { label: 'Hexadecimal', format: 'h' },
+            { label: 'Decimal', format: 'd' },
+            { label: 'Binary', format: 'b' },
+            { label: 'Octal', format: 'o' },
+            { label: 'Default', format: '' }
+        ];
+
+        formats.forEach(f => {
+            const item = document.createElement('div');
+            item.className = 'context-menu-item';
+            
+            const check = document.createElement('span');
+            check.className = 'context-menu-check';
+            if (f.format === currentFormat) {
+                check.textContent = '✓';
+                check.style.visibility = 'visible';
+            } else {
+                check.textContent = '✓';
+                check.style.visibility = 'hidden';
+            }
+            item.appendChild(check);
+
+            const label = document.createElement('span');
+            label.textContent = f.label;
+            item.appendChild(label);
+
+            item.addEventListener('click', () => {
+                this.vscode.postMessage({
+                    type: 'update-format',
+                    nodeId: node.id,
+                    format: f.format
+                });
+                this.hideContextMenu();
+            });
+            this.contextMenu!.appendChild(item);
+        });
+
+        const x = e.clientX;
+        const y = e.clientY;
+
+        // Adjust position if it goes out of bounds
+        const rect = this.contextMenu.getBoundingClientRect();
+        // We can't get rect before display block, but we can guess or adjust after.
+        // Simple positioning for now.
+        
+        this.contextMenu.style.left = `${x}px`;
+        this.contextMenu.style.top = `${y}px`;
+        this.contextMenu.style.display = 'block';
     }
 
     private handleMessage(event: MessageEvent<LiveWatchMessage>) {
@@ -240,7 +319,26 @@ class LiveWatchView {
         if (node.isRoot) {
             nameSpan.classList.add('editable');
         }
-        nameSpan.textContent = displayName;
+        
+        // Check for format specifier
+        const formatMatch = displayName.match(/,([hxbod])$/);
+        let formatSpan: HTMLSpanElement | undefined;
+
+        if (formatMatch && node.isRoot) {
+            nameSpan.textContent = displayName.substring(0, formatMatch.index);
+            
+            formatSpan = document.createElement('span');
+            formatSpan.className = 'format-specifier';
+            formatSpan.textContent = formatMatch[0];
+            formatSpan.title = 'Click to change format';
+            
+            formatSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showContextMenu(e, node);
+            });
+        } else {
+            nameSpan.textContent = displayName;
+        }
 
         // Inline editing for root nodes
         if (node.isRoot) {
@@ -251,6 +349,9 @@ class LiveWatchView {
         }
 
         label.appendChild(nameSpan);
+        if (formatSpan) {
+            label.appendChild(formatSpan);
+        }
 
         const separator = document.createElement('span');
         separator.className = 'separator';
@@ -321,6 +422,11 @@ class LiveWatchView {
 
         item.addEventListener('click', () => {
             this.selectNode(node.id);
+        });
+
+        item.addEventListener('contextmenu', (e) => {
+            this.selectNode(node.id);
+            this.showContextMenu(e, node);
         });
 
         item.addEventListener('dblclick', (e) => {

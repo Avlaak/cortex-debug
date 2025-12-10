@@ -187,6 +187,46 @@
             text-decoration: underline;
             text-decoration-style: dotted;
         }
+        .format-specifier {
+            color: var(--vscode-descriptionForeground);
+            cursor: pointer;
+        }
+        .format-specifier:hover {
+            color: var(--vscode-foreground);
+        }
+        .context-menu {
+            position: fixed;
+            background-color: var(--vscode-menu-background);
+            color: var(--vscode-menu-foreground);
+            border: 1px solid var(--vscode-menu-border, transparent);
+            box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+            padding: 4px 0;
+            z-index: 1000;
+            display: none;
+            min-width: 120px;
+        }
+        .context-menu-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .context-menu-check {
+            width: 16px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 4px;
+            font-weight: bold;
+        }
+        .context-menu-item:hover {
+            background-color: var(--vscode-menu-selectionBackground);
+            color: var(--vscode-menu-selectionForeground);
+        }
+        .context-menu-separator {
+            height: 1px;
+            background-color: var(--vscode-menu-separatorBackground);
+            margin: 4px 0;
+        }
     </style>
 </head>
 <body>

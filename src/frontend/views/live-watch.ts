@@ -503,6 +503,9 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
             case 'add-expression':
                 this.addWatchExpr(message.expression, LiveWatchWebviewProvider.session);
                 break;
+            case 'update-format':
+                this.handleUpdateFormat(message.nodeId, message.format);
+                break;
         }
     }
 
@@ -557,6 +560,38 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
         }
 
         node.rename(newName);
+        this.saveState();
+        this.refresh(LiveWatchWebviewProvider.session);
+    }
+
+    private handleUpdateFormat(nodeId: string, format: string) {
+        const node = this.variables.findById(nodeId);
+        if (!node || !node.isRootChild()) {
+            return;
+        }
+
+        let expr = node.getExpr();
+        // Remove existing format specifier if any (e.g. ,h ,x ,b ,o ,d)
+        // Regex to match comma followed by format chars at the end
+        expr = expr.replace(/,[hxbod]$/, '');
+
+        if (format) {
+            expr += ',' + format;
+        }
+
+        if (expr === node.getExpr()) {
+            return;
+        }
+
+        // Check if expression already exists
+        if (this.variables.findName(expr)) {
+            vscode.window.showInformationMessage(
+                `Live Watch: Expression ${expr} is already being watched`
+            );
+            return;
+        }
+
+        node.rename(expr);
         this.saveState();
         this.refresh(LiveWatchWebviewProvider.session);
     }
