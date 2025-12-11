@@ -139,12 +139,20 @@ class LiveWatchView {
 
         switch (message.type) {
             case 'update':
+                const oldVariables = this.variables;
                 this.variables = message.variables || [];
                 this.hasSession = message.hasSession ?? false;
                 this.vscode.setState({ variables: this.variables, hasSession: this.hasSession });
                 // Don't re-render if we're currently editing - just save the data
                 if (!this.editingNodeId) {
-                    this.render();
+                    // Check if the tree structure has changed
+                    if (this.isStructureChanged(oldVariables, this.variables)) {
+                        // Full render for structural changes
+                        this.render();
+                    } else {
+                        // Partial update of values only
+                        this.updateVariableValues(this.variables);
+                    }
                 }
                 break;
             case 'clear':
@@ -185,6 +193,107 @@ class LiveWatchView {
             hintDiv.textContent = 'Hint: Use & Enable "liveWatch" in your launch.json to enable this panel';
             this.root.appendChild(hintDiv);
         }
+    }
+
+    // Method to check if the variable tree structure has changed
+    private isStructureChanged(oldVars: VariableNode[], newVars: VariableNode[]): boolean {
+        // Different number of variables - structure changed
+        if (oldVars.length !== newVars.length) {
+            return true;
+        }
+
+        // Recursively compare structure
+        const compareNodes = (oldNodes: VariableNode[], newNodes: VariableNode[]): boolean => {
+            if (oldNodes.length !== newNodes.length) {
+                return true;
+            }
+
+            for (let i = 0; i < oldNodes.length; i++) {
+                const oldNode = oldNodes[i];
+                const newNode = newNodes[i];
+
+                // Check key structural properties
+                if (oldNode.id !== newNode.id ||
+                    oldNode.name !== newNode.name ||
+                    oldNode.expr !== newNode.expr ||
+                    oldNode.hasChildren !== newNode.hasChildren ||
+                    oldNode.expanded !== newNode.expanded ||
+                    oldNode.depth !== newNode.depth) {
+                    return true;
+                }
+
+                // Recursively check children
+                const oldChildren = oldNode.children || [];
+                const newChildren = newNode.children || [];
+                if (compareNodes(oldChildren, newChildren)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        return compareNodes(oldVars, newVars);
+    }
+
+    // Method to update only variable values without full re-render
+    private updateVariableValues(newVariables: VariableNode[]) {
+        // Create a map of new values by ID for fast lookup
+        const newValueMap = new Map<string, VariableNode>();
+        const buildValueMap = (vars: VariableNode[]) => {
+            for (const variable of vars) {
+                newValueMap.set(variable.id, variable);
+                if (variable.children && variable.children.length > 0) {
+                    buildValueMap(variable.children);
+                }
+            }
+        };
+        buildValueMap(newVariables);
+
+        // Recursively update values in DOM
+        const updateValuesInDOM = (container: HTMLElement) => {
+            const items = container.querySelectorAll('.tree-item-container');
+            items.forEach(item => {
+                const id = item.getAttribute('data-id');
+                if (id && newValueMap.has(id)) {
+                    const newNode = newValueMap.get(id)!;
+                    const valueElement = item.querySelector('.value') as HTMLElement;
+                    if (valueElement) {
+                        // Update value
+                        valueElement.textContent = newNode.value || 'not available';
+                        // Update classes
+                        valueElement.className = 'value';
+                        if (!newNode.value || newNode.value === '') {
+                            valueElement.classList.add('not-available');
+                        } else {
+                            if (newNode.changed) {
+                                valueElement.classList.add('changed');
+                            }
+
+                            // Add type-specific classes
+                            if (newNode.value.startsWith('"') || newNode.value.startsWith("'")) {
+                                valueElement.classList.add('string');
+                            } else if (newNode.value === 'true' || newNode.value === 'false') {
+                                valueElement.classList.add('boolean');
+                            } else if (/^-?\d/.test(newNode.value) || /^0x[0-9a-fA-F]/.test(newNode.value)) {
+                                valueElement.classList.add('number');
+                            } else if (newNode.value.startsWith('<')) {
+                                valueElement.classList.add('error');
+                            }
+                        }
+                    }
+
+                    // Recursively update children if present
+                    const childrenContainer = item.querySelector('.tree-children') as HTMLElement;
+                    if (childrenContainer) {
+                        updateValuesInDOM(childrenContainer);
+                    }
+                }
+            });
+        };
+
+        // Start updating values
+        updateValuesInDOM(this.root);
     }
 
     private renderHint(text: string) {
@@ -522,7 +631,75 @@ class LiveWatchView {
     }
 
     private toggleNode(id: string) {
+        // Optimistic update: immediately update UI visually
+        const container = this.root.querySelector(`[data-id="${id}"]`);
+        if (container) {
+            const toggle = container.querySelector('.tree-toggle');
+            const childrenContainer = container.querySelector('.tree-children') as HTMLElement;
+            const item = container.querySelector('.tree-item');
+
+            // Find the node in our data
+            const node = this.findNodeById(this.variables, id);
+
+            if (toggle && node) {
+                if (node.expanded) {
+                    // Collapse - instantly
+                    toggle.classList.remove('expanded');
+                    toggle.classList.add('collapsed');
+                    if (childrenContainer) {
+                        childrenContainer.classList.remove('expanded');
+                    }
+                } else {
+                    // Expand - show loading
+                    toggle.classList.remove('collapsed');
+                    toggle.classList.add('expanded', 'loading');
+
+                    // If no children container exists, create a placeholder
+                    if (!childrenContainer && node.hasChildren) {
+                        const loadingContainer = document.createElement('div');
+                        loadingContainer.className = 'tree-children expanded';
+
+                        const loadingItem = document.createElement('div');
+                        loadingItem.className = 'tree-item loading-placeholder';
+
+                        // Add indentation
+                        for (let i = 0; i <= node.depth; i++) {
+                            const indent = document.createElement('span');
+                            indent.className = 'indent';
+                            loadingItem.appendChild(indent);
+                        }
+
+                        const loadingText = document.createElement('span');
+                        loadingText.className = 'loading-text';
+                        loadingText.textContent = 'Loading...';
+                        loadingItem.appendChild(loadingText);
+
+                        loadingContainer.appendChild(loadingItem);
+                        container.appendChild(loadingContainer);
+                    } else if (childrenContainer) {
+                        childrenContainer.classList.add('expanded');
+                    }
+                }
+            }
+        }
+
         this.vscode.postMessage({ type: 'toggle', nodeId: id });
+    }
+
+    // Helper method to find a node by ID
+    private findNodeById(nodes: VariableNode[], id: string): VariableNode | undefined {
+        for (const node of nodes) {
+            if (node.id === id) {
+                return node;
+            }
+            if (node.children) {
+                const found = this.findNodeById(node.children, id);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return undefined;
     }
 
     private startInlineEdit(node: VariableNode, nameSpan: HTMLElement) {
@@ -701,7 +878,7 @@ class LiveWatchView {
     private isSimpleVariable(expr: string): boolean {
         // Remove format specifier if present (e.g., ",x" or ",h" at the end)
         const exprWithoutFormat = expr.replace(/,[hxbod]$/i, '').trim();
-        
+
         if (!exprWithoutFormat) {
             return false;
         }
@@ -713,13 +890,13 @@ class LiveWatchView {
         // Bitwise: & | ^ ~ << >>
         // Assignment: =
         // Ternary: ? :
-        
+
         // Patterns that indicate non-lvalue expressions:
         // - Binary arithmetic: contains + - / % not at start, or contains * not at start and not followed by identifier
         // - Comparisons and logical ops
         // - Function calls: identifier followed by (
         // - Literals: pure numbers, strings
-        
+
         // Simple check: if it contains these operators (excluding unary * and struct ->), it's likely an expression
         const binaryOpPattern = /[+\-\/%](?![>])|[=!<>]=|&&|\|\||<<|>>|\^|~|\?|:/;
         if (binaryOpPattern.test(exprWithoutFormat)) {
@@ -731,22 +908,22 @@ class LiveWatchView {
                 return false;
             }
         }
-        
+
         // Check for function calls: identifier followed by (
         if (/[a-zA-Z_]\w*\s*\(/.test(exprWithoutFormat)) {
             return false;
         }
-        
+
         // Check for pure numeric literals (not lvalues)
         if (/^-?\d+(\.\d+)?$/.test(exprWithoutFormat) || /^0x[0-9a-fA-F]+$/i.test(exprWithoutFormat)) {
             return false;
         }
-        
+
         // Check for string literals
         if (/^["']/.test(exprWithoutFormat)) {
             return false;
         }
-        
+
         // Otherwise, assume it's a valid lvalue (variable, member access, array element, etc.)
         return true;
     }
