@@ -1,5 +1,7 @@
 # ChangeLog
 
+* Fix extension launch.
+
 ## [1.14.0]
 * Added ability to edit variables in live-watch.
 * Added inline editing of variable names in live-watch.
