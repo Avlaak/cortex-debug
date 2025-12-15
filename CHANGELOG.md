@@ -1,5 +1,6 @@
 # ChangeLog
 
+## [1.14.1]
 * Fix extension launch.
 
 ## [1.14.0]
