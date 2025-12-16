@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.14.2] – 2025‑12‑16
+
 ### Added
 * Added "Remove All Expressions" and "Collapse All" buttons to Live Watch panel, similar to the standard Watch view.
 
