@@ -4,14 +4,16 @@ on:
   workflow_dispatch:
 
 env:
-  VERSION: ''
-  IS_PRERELEASE: 'false'
   PACKAGE_NAME: 'EmbeddCortexDebug'
   VSIX_NAME: 'embedd-cortex-debug'
 
 jobs:
-  release:
+  build:
+    name: Build
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.check_prerelease.outputs.is_prerelease }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -20,63 +22,104 @@ jobs:
         id: get_version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Print version
-        run: echo ${{ env.VERSION }}
-
-      - name: Change prerelease status
-        if: contains(env.VERSION, '-rc')
-        run: echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-
-      - name: Print prerelease status
-        run: echo ${{ env.IS_PRERELEASE }}
-
-      - name: Install package creator
-        run: npm install -g @vscode/vsce
+      - name: Check prerelease status
+        id: check_prerelease
+        run: |
+          if [[ "${{ steps.get_version.outputs.version }}" == *"-rc"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install dependencies
         run: npm install
 
       - name: Build extension
-        run: vsce package
+        run: npx vsce package
 
-      - name: Read changelog for pre release build
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: ./*.vsix
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+          path: artifacts
+
+      - name: Read changelog
         id: changelog_release
         uses: embedd-actions/read_changelog_action@v3
         with:
           changelogfile: 'CHANGELOG.md'
-          tag: ${{ env.VERSION }}
+          tag: ${{ needs.build.outputs.version }}
 
       - name: Prepare release notes
         env:
           REL_CHANGES: ${{ steps.changelog_release.outputs.content }}
         run: |
-          echo "## [${{ env.VERSION }}] - $(date +'%Y-%m-%d')" >> Release_Notes.md
+          echo "## [${{ needs.build.outputs.version }}] - $(date +'%Y-%m-%d')" >> Release_Notes.md
           echo "" >> Release_Notes.md
           echo "$REL_CHANGES" >> Release_Notes.md
 
-
-      - uses: ncipollo/release-action@v1
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
         with:
           bodyFile: "Release_Notes.md"
           allowUpdates: false
-          prerelease: ${{ env.IS_PRERELEASE }}
-          tag: "v${{ env.VERSION }}"
+          prerelease: ${{ needs.build.outputs.is_prerelease }}
+          tag: "v${{ needs.build.outputs.version }}"
           commit: ${{ github.ref_name }}
+          artifacts: "artifacts/*.vsix"
+          artifactContentType: application/octet-stream
 
+  publish-open-vsx:
+    name: Open VSX Registry
+    needs: build
+    runs-on: ubuntu-latest
+    if: needs.build.outputs.is_prerelease == 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Upload vsix to release
-        uses: svenstaro/upload-release-action@v2
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.VSIX_NAME }}-${{ env.VERSION }}.vsix
-          asset_name: ${{env.PACKAGE_NAME}}-${{ env.VERSION }}.vsix
-          tag: "v${{ env.VERSION }}"
+          name: vsix-package
+          path: artifacts
 
-      - name: Publish extension to marketplace
-        if: env.IS_PRERELEASE == 'false'
-        run: npm run deploy
+      - name: Publish to Open VSX
+        run: npx ovsx publish artifacts/*.vsix -p ${{ secrets.OPEN_VSX_TOKEN }}
+
+  publish-vscode-marketplace:
+    name: VS Code Marketplace
+    needs: build
+    runs-on: ubuntu-latest
+    if: needs.build.outputs.is_prerelease == 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+          path: artifacts
+
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --packagePath artifacts/*.vsix
         env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
+          VSCE_PAT: ${{ secrets.VS_MARKETPLACE_TOKEN }}
