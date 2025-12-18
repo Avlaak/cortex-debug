@@ -3209,7 +3209,7 @@
         "mcu-debug.debug-tracker-vscode",
         "mcu-debug.memory-view",
         "mcu-debug.rtos-views",
-        "mcu-debug.peripheral-viewer"
+        "embedd-team.embedd-peripheral-viewer"
     ],
     "main": "./dist/extension.js",
     "name": "embedd-cortex-debug",

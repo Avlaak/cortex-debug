@@ -5,6 +5,7 @@
 
 ### Changed
 - Align Live Watch toolbar buttons with standard Watch view.
+- Change package dependency from 'mcu-debug.peripheral-viewer' to 'embedd-team.embedd-peripheral-viewer'.
 
 ## [1.14.2] – 2025‑12‑16
 
