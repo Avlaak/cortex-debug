@@ -1,33 +1,33 @@
 # Changelog
 
 ### Changed
-* Align Live Watch toolbar buttons with standard Watch view.
+- Align Live Watch toolbar buttons with standard Watch view.
 
 ## [1.14.2] – 2025‑12‑16
 
 ### Added
-* Added "Remove All Expressions" and "Collapse All" buttons to Live Watch panel, similar to the standard Watch view.
+- Added "Remove All Expressions" and "Collapse All" buttons to Live Watch panel, similar to the standard Watch view.
 
 ### Changed
-* Update package name to embedd and adjust publisher.
+- Update package name to embedd and adjust publisher.
 
 ## [1.14.1] – 2025‑12‑15
 
 ### Fixed
-* Fix extension launch.
+- Fix extension launch.
 
 ## [1.14.0] – 2025‑12‑15
 
 ### Added
-* Added ability to edit variables in live-watch.
-* Added inline editing of variable names in live-watch.
-* Added inline editing of variable values in live-watch.
-* Added context menu for format selection in live-watch.
+- Added ability to edit variables in live-watch.
+- Added inline editing of variable names in live-watch.
+- Added inline editing of variable values in live-watch.
+- Added context menu for format selection in live-watch.
 
 ### Changed
-* Styling unified with original watch.
-* Live-watch rewritten to webview.
-* Make publish script cross-platform by replacing cp with Node.js fs.cpSync.
+- Styling unified with original watch.
+- Live-watch rewritten to webview.
+- Make publish script cross-platform by replacing cp with Node.js fs.cpSync.
 
 # Before Fork History
 
