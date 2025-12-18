@@ -29,6 +29,8 @@
 * Live-watch rewritten to webview.
 * Make publish script cross-platform by replacing cp with Node.js fs.cpSync.
 
+# Before Fork History
+
 # V1.13.0-pre9
 * Fix for https://github.com/Marus/cortex-debug/issues/1167 Race comdition in parallel reading of multiple symbol files
 
