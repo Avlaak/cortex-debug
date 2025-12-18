@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.14.3] – 2025‑12‑19
+
 ### Added
 - Added updating peripheral register states without pausing debugging.
 
