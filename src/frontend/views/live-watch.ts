@@ -761,6 +761,7 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
             this.isStopped = true;
             this.killTimer();
             LiveWatchWebviewProvider.session = undefined;
+            vscode.commands.executeCommand('setContext', 'cortex-debug.liveWatch.liveEnabled', false);
             this.updateWebview();
             this.saveState();
             setTimeout(() => {
@@ -772,6 +773,7 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
     public debugSessionStarted(session: vscode.DebugSession) {
         const liveWatch = session.configuration.liveWatch as LiveWatchConfig;
         if (!liveWatch?.enabled) {
+            vscode.commands.executeCommand('setContext', 'cortex-debug.liveWatch.liveEnabled', false);
             if (!LiveWatchWebviewProvider.session) {
                 this.updateWebview();
             }
@@ -784,6 +786,7 @@ export class LiveWatchWebviewProvider implements vscode.WebviewViewProvider {
             return;
         }
         LiveWatchWebviewProvider.session = session;
+        vscode.commands.executeCommand('setContext', 'cortex-debug.liveWatch.liveEnabled', true);
         this.isStopped = true;
         this.variables.reset();
         const samplesPerSecond = Math.max(1, Math.min(20, liveWatch.samplesPerSecond ?? 4));

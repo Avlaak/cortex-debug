@@ -9,6 +9,7 @@
   }
   ```
 - Added live memory write support - peripheral register values can now be modified while the program is running (when `liveWatch` or `livePeripheral` is enabled).
+- Added "Refresh" button to Live Watch panel for manual refresh when live mode is disabled or program is stopped.
 
 ## [1.14.3] – 2025‑12‑19
 

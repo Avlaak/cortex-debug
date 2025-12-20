@@ -492,6 +492,12 @@
                 "title": "Collapse All",
                 "icon": "$(collapse-all)",
                 "enablement": "cortex-debug.liveWatch.hasExpressions"
+            },
+            {
+                "command": "cortex-debug.liveWatch.forceRefresh",
+                "title": "Refresh",
+                "icon": "$(refresh)",
+                "enablement": "cortex-debug.liveWatch.hasExpressions"
             }
         ],
         "keybindings": [
@@ -3157,6 +3163,11 @@
                     "command": "cortex-debug.liveWatch.collapseAll",
                     "when": "view == cortex-debug.liveWatch",
                     "group": "navigation@4"
+                },
+                {
+                    "command": "cortex-debug.liveWatch.forceRefresh",
+                    "when": "view == cortex-debug.liveWatch && inDebugMode && debugType == 'cortex-debug' && (!cortex-debug.liveWatch.liveEnabled || debugState == stopped)",
+                    "group": "navigation@5"
                 },
                 {
                     "command": "cortex-debug.varHexModeTurnOn",
