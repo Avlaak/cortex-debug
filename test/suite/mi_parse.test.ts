@@ -23,6 +23,13 @@ suite('MI Parse', () => {
         assert.equal(parsed.outOfBandRecord[0].content, '[Thread 0x7fffe993a700 (LWP 11002) exited]\n');
         assert.equal(parsed.resultRecords, undefined);
     });
+    test('Console stream output with ANSI escape', () => {
+        const parsed = parseMI('~"\\e[31mFAIL\\e[0m Reserve section failed\\n"');
+        assert.ok(parsed);
+        assert.equal(parsed.outOfBandRecord.length, 1);
+        assert.equal(parsed.outOfBandRecord[0].isStream, true);
+        assert.equal(parsed.outOfBandRecord[0].content, '\x1b[31mFAIL\x1b[0m Reserve section failed\n');
+    });
     test('Unicode', () => {
         let parsed = parseMI('~"[Depuraci\\303\\263n de hilo usando libthread_db enabled]\\n"');
         assert.ok(parsed);

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.14.8] - 2026-06-18
+
+### Added
+- Added ANSI color support for Debug Console output. The debug adapter now advertises ANSI styling support to VS Code and preserves GDB/MI `\e` escape sequences as ESC characters, so target output such as `printf("\x1b[31mFAIL\x1b[0m Reserve section failed\r\n");` renders colored text instead of visible control sequences.
+
 ## [1.14.7] – 2026‑04‑15
 
 ### Added

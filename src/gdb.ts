@@ -379,6 +379,7 @@ export class GDBDebugSession extends LoggingDebugSession {
         response.body.supportsInstructionBreakpoints = true;
         response.body.supportsReadMemoryRequest = true;
         response.body.supportsWriteMemoryRequest = true;
+        (response.body as any).supportsANSIStyling = true;
 
         const bptAppliesTo: DebugProtocol.BreakpointModeApplicability[] = ['source', /* 'exception' , */ 'data', 'instruction'];
         response.body.breakpointModes = [
